@@ -9,7 +9,8 @@ Given a catalog, this script:
 
         η_ij = t_ij * r_ij^d * 10^(-b * m_i)
 
-    where t_ij is the inter-event time (years), r_ij is the 3D distance (km),
+    where t_ij is the inter-event time (years), r_ij is the 2D epicentral
+    distance (km),
     d is the (possibly fractal) dimension, and b is the GR b-value.
 
   * computes the rescaled time and distance to the parent:
@@ -20,7 +21,7 @@ Given a catalog, this script:
   * saves all results in a NumPy .npz file.
 
 Time unit: years
-Space: 3D (lon/lat/depth) in km
+Space: 2D epicentral (lon/lat) distance in km
 """
 
 import os
@@ -40,7 +41,8 @@ os.makedirs(os.path.dirname(out_npz), exist_ok=True)
 
 # NN parameters
 b_value  = 1.0
-d_dim    = 1.6       # fractal dimension of hypocenters
+distance_mode = "epicentral_2d"
+d_dim    = 1.6       # fractal dimension paired with 2D epicentral distance
 p_param  = 0.5       # p + q = 1
 q_param  = 0.5
 max_back = 5000      # only test last max_back events as candidate parents
@@ -113,8 +115,8 @@ def utc_to_year(ot_array):
 
 
 def compute_nn_metrics(t_years, lat, lon, dep_km, mag,
-                       b=1.0, d=2.6, p=0.5, q=0.5,
-                       max_back=5000):
+                       b, d, p=0.5, q=0.5, max_back=5000,
+                       distance_mode="epicentral_2d"):
     """
     Compute nearest-neighbor parent, η, T, R for each event.
 
@@ -123,6 +125,10 @@ def compute_nn_metrics(t_years, lat, lon, dep_km, mag,
     t_years : (N,) array of event times in years (sorted ascending)
     lat, lon, dep_km, mag : (N,) arrays
     b, d, p, q : NN parameters
+    distance_mode : {"epicentral_2d", "hypocentral_3d"}
+        Spatial distance convention paired with ``d``. The configured
+        ``d=1.6`` is intended for 2D epicentral distances. Use 3D only with
+        a fractal dimension independently estimated from 3D hypocenters.
     max_back : int
         For event j, only the previous max_back events are considered
         as potential parents (computational speed-up).
@@ -134,8 +140,15 @@ def compute_nn_metrics(t_years, lat, lon, dep_km, mag,
     T_res  : (N,) float, rescaled time to parent (T)
     R_res  : (N,) float, rescaled distance to parent (R)
     dt_yr  : (N,) float, raw time difference to parent
-    r_km   : (N,) float, raw 3D distance to parent
+    r_km   : (N,) float, raw distance to parent under ``distance_mode``
     """
+
+    valid_distance_modes = {"epicentral_2d", "hypocentral_3d"}
+    if distance_mode not in valid_distance_modes:
+        raise ValueError(
+            f"distance_mode must be one of {sorted(valid_distance_modes)}, "
+            f"got {distance_mode!r}"
+        )
 
     N = len(t_years)
     parent = -np.ones(N, dtype=int)
@@ -161,7 +174,8 @@ def compute_nn_metrics(t_years, lat, lon, dep_km, mag,
         idxs = idxs[valid]
         dt   = dt[valid]
 
-        # 3D distances (km)
+        # Horizontal epicentral distance (km). Depth is included only when
+        # an explicitly paired 3D distance convention is requested.
         lat_j = lat[j]
         lon_j = lon[j]
         dep_j = dep_km[j]
@@ -174,8 +188,11 @@ def compute_nn_metrics(t_years, lat, lon, dep_km, mag,
         lat_mean_rad = np.deg2rad(0.5 * (lat_j + lat_i))
         dx = 111.0 * (lon_j - lon_i) * np.cos(lat_mean_rad)
         dy = 111.0 * (lat_j - lat_i)
-        dz = dep_j - dep_i
-        r  = np.sqrt(dx*dx + dy*dy + dz*dz)  # km
+        r2 = dx*dx + dy*dy
+        if distance_mode == "hypocentral_3d":
+            dz = dep_j - dep_i
+            r2 = r2 + dz*dz
+        r = np.sqrt(r2)  # km
 
         # parent magnitudes
         m_par = mag[idxs]
@@ -223,11 +240,14 @@ if __name__ == "__main__":
 
     t_years = utc_to_year(times)
 
-    print("Computing nearest-neighbor metrics ...")
+    print(
+        "Computing nearest-neighbor metrics with "
+        f"distance_mode={distance_mode}, d={d_dim} ..."
+    )
     parent, eta, T_res, R_res, dt_yr, r_km = compute_nn_metrics(
         t_years, lats, lons, deps, mags,
         b=b_value, d=d_dim, p=p_param, q=q_param,
-        max_back=max_back
+        max_back=max_back, distance_mode=distance_mode
     )
 
     print(f"Saving results to {out_npz}")
@@ -240,6 +260,7 @@ if __name__ == "__main__":
         eta=eta, T=T_res, R=R_res,
         dt_yr=dt_yr, r_km=r_km,
         b=b_value, d=d_dim, p=p_param, q=q_param,
-        max_back=max_back
+        max_back=max_back,
+        distance_mode=distance_mode
     )
     print("Done.")
