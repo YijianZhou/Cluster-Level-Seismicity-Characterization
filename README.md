@@ -247,27 +247,10 @@ overwritten, so preserve publication-ready results separately.
 - These scripts support scientific interpretation; they do not replace visual
   quality control or uncertainty analysis.
 
-## Citation
+## References
 
-The first application of this workflow to Delaware Basin seismicity is described
-in the accompanying manuscript. If you use this repository, please cite both the
-archived software release and the associated paper. Add the final article title,
-authors, journal details, and DOI here before the public release.
-
-A Zenodo archive linked to the GitHub release is recommended so that the exact
-code version used in a publication has a persistent DOI.
-
-## Before making a public release
-
-- Add an OSI-approved `LICENSE` file. Without a license, others do not have
-  explicit permission to reuse or modify the code.
-- Add the final paper citation and software DOI.
-- Add a pinned `environment.yml` or `requirements.txt` from the release
-  environment.
-- Confirm that no restricted catalogs, well records, credentials, or absolute
-  local paths are included.
-- Run the complete workflow in a clean environment and archive a small example
-  dataset if data-sharing permissions allow it.
+- Zhou et al. (Under review). Manuscript describing the first application of
+  this workflow to Delaware Basin seismicity.
 
 ## Issues and contributions
 
