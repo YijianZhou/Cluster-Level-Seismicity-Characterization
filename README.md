@@ -249,8 +249,10 @@ overwritten, so preserve publication-ready results separately.
 
 ## References
 
-- Zhou et al. (Under review). Manuscript describing the first application of
-  this workflow to Delaware Basin seismicity.
+- **Zhou, Y.**, K. Sirorattanakul, Z. Fang, J. An, J. Nunn, & J.-P. Avouac
+  (Under review). Causal Mechanisms of Induced Earthquakes in the Delaware Basin
+  Revealed by Microseismicity Burstiness and Migration at Cluster-Level.
+  *Journal of Geophysical Research: Solid Earth*.
 
 ## Issues and contributions
 
